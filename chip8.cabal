@@ -1,0 +1,85 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.1.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: f512dd661dbff74a260e5bf5fbd2101bdc5194a3a3da1b41c5a617013f318f80
+
+name:           chip8
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/Invaern/chip8#readme>
+homepage:       https://github.com/Invaern/chip8#readme
+bug-reports:    https://github.com/Invaern/chip8/issues
+author:         Invaern
+maintainer:     invaern@gmail.com
+copyright:      2019 Invaern
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+
+source-repository head
+  type: git
+  location: https://github.com/Invaern/chip8
+
+library
+  exposed-modules:
+      Emulator
+      Emulator.CPU
+      Emulator.Instruction
+      Emulator.Memory
+      Emulator.Memory2
+      Emulator.Monad
+      Emulator.Monad.IO
+      Emulator.Monad.ST
+      Emulator.Registers
+      Emulator.System
+      Emulator.Video
+      Lib
+  other-modules:
+      Paths_chip8
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , linear >=1.20.9 && <2.0
+    , mtl >=2.2 && <3.0
+    , mutable-containers >=0.3.4 && <0.4
+    , sdl2 >=2.5 && <3
+    , vector >=0.12 && <0.13
+  default-language: Haskell2010
+
+executable chip8-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_chip8
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -O2 -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , chip8
+    , linear >=1.20.9 && <2.0
+    , mtl >=2.2 && <3.0
+    , mutable-containers >=0.3.4 && <0.4
+    , sdl2 >=2.5 && <3
+    , vector >=0.12 && <0.13
+  default-language: Haskell2010
+
+test-suite chip8-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_chip8
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , chip8
+    , linear >=1.20.9 && <2.0
+    , mtl >=2.2 && <3.0
+    , mutable-containers >=0.3.4 && <0.4
+    , sdl2 >=2.5 && <3
+    , vector >=0.12 && <0.13
+  default-language: Haskell2010
