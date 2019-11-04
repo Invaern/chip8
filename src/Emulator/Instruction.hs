@@ -23,9 +23,9 @@ data Instruction
     | XorRegReg !Register !Register
     | AddRegReg !Register !Register
     | SubReg1Reg2 !Register !Register
-    | LsbShift !Register
     | SubReg2Reg1 !Register !Register
-    | MsbShift !Register
+    | LsbShiftR !Register
+    | MsbShiftL !Register
     | SetI !Word16
     | JumpV0 !Word16
     | SetRandAnd !Register !Word8
@@ -60,9 +60,9 @@ decodeInstruction op1 op2 = case (a, b, c, d) of
     (8, x, y, 3)       -> XorRegReg (reg x) (reg y)
     (8, x, y, 4)       -> AddRegReg (reg x) (reg y)
     (8, x, y, 5)       -> SubReg1Reg2 (reg x) (reg y)
-    (8, x, _, 6)       -> LsbShift (reg x)
+    (8, x, _, 6)       -> LsbShiftR (reg x)
     (8, x, y, 7)       -> SubReg2Reg1 (reg x) (reg y)
-    (8, x, y, 0xE)     -> MsbShift (reg x)
+    (8, x, y, 0xE)     -> MsbShiftL (reg x)
     (9, x, y, 0)       -> SkipRegNe (reg x) (reg y)
     (0xA, x, y, z)     -> SetI $ word12 x y z
     (0xB, x, y, z)     -> JumpV0 $ word12 x y z

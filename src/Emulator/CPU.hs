@@ -1,6 +1,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 module Emulator.CPU (CPU, new, memory, readPC, writePC,
                      Timer(..), writeTimer, readTimer,
+                     readIP, writeIP,
                      video, registers)  where
 
 import           Control.Monad.ST            (ST)
@@ -21,6 +22,7 @@ data CPU s = CPU
     , c_pc        :: URef s Word16
     , c_delay_t   :: URef s Word8
     , c_sound_t   :: URef s Word8
+    , c_ip        :: URef s Word16
     , c_stack     :: STRef s [Word16]
     , c_vbuffer   :: Video s
     }
@@ -33,14 +35,16 @@ new :: ST s (CPU s)
 new = do
     mem <- Memory.new
     pc <- newRef 0
+    ip <- newRef 0
     delay_t <- newRef 0
     sound_t <- newRef 0
     stack <- newSTRef []
-    vbuffer <- Video.new
+    vbuffer <- Video.new'
     regs <- Registers.new
     return $ CPU
         { c_memory = mem
         , c_pc = pc
+        , c_ip = ip
         , c_delay_t = delay_t
         , c_sound_t = sound_t
         , c_stack = stack
@@ -57,11 +61,17 @@ video cpu = c_vbuffer cpu
 registers :: CPU s -> Registers s
 registers cpu = c_registers cpu
 
+readIP :: CPU s -> ST s Word16
+readIP cpu = readRef $ c_ip cpu
+
 readPC :: CPU s -> ST s Word16
 readPC cpu = readRef $ c_pc cpu
 
 writePC :: CPU s -> Word16 -> ST s ()
 writePC cpu val = writeRef (c_pc cpu) val
+
+writeIP :: CPU s -> Word16 -> ST s ()
+writeIP cpu val = writeRef (c_ip cpu) val
 
 readTimer :: CPU s -> Timer -> ST s Word8
 readTimer CPU {c_delay_t} DelayTimer = readRef c_delay_t

@@ -37,12 +37,19 @@ instance MonadEmulator IOEmulator where
 
     readPC = IOEmulator $ do
        pc <- reader (CPU.readPC . s_cpu)
-       pc_val <- lift $ stToIO $ pc
-       return pc_val
+       lift $ stToIO $ pc
 
     writePC !val = IOEmulator $ do
         cpu <- reader s_cpu
         lift $ stToIO $ CPU.writePC cpu val
+
+    readIP = IOEmulator $ do
+       ip <- reader (CPU.readIP . s_cpu)
+       lift $ stToIO $ ip
+
+    writeIP !val = IOEmulator $ do
+        cpu <- reader s_cpu
+        lift $ stToIO $ CPU.writeIP cpu val
 
     readTimer timer = IOEmulator $ do
         cpu <- reader  s_cpu
@@ -55,6 +62,10 @@ instance MonadEmulator IOEmulator where
     clearScreen = IOEmulator $ do
         video <- reader (CPU.video . s_cpu)
         lift $ stToIO $ Video.clear video
+
+    draw x y val = IOEmulator $ do
+        video <- reader (CPU.video . s_cpu)
+        lift $ stToIO $ Video.draw video x y val
 
     readRegister reg = IOEmulator $ do
         registers <- reader (CPU.registers . s_cpu)

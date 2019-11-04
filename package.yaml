@@ -50,3 +50,6 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - chip8
+    - tasty >=  1.2.3 && < 1.3
+    - tasty-hunit >= 0.10.0.2 && < 0.11
+    - tasty-quickcheck >= 0.10.1 && < 0.11

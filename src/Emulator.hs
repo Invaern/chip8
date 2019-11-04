@@ -2,14 +2,15 @@
 module Emulator where
 
 
-import           Control.Monad        (replicateM_, unless, when)
+import           Control.Monad        (replicateM_, unless, when, forM)
 import           Data.Bits
 import           Data.Word            (Word8)
 import           Emulator.CPU         (Timer (..))
-import           Emulator.Instruction (Instruction(..), decodeInstruction)
+import           Emulator.Instruction (Instruction (..), decodeInstruction)
 import           Emulator.Monad       (MonadEmulator (..), System (..))
+import           Emulator.Registers   (Register (..))
 
-import Debug.Trace
+import           Debug.Trace
 
 step :: (MonadEmulator m) => m ()
 step = do
@@ -35,7 +36,7 @@ mainLoop = loop
             -- traceM ("start time: " ++ show startTime)
             frameSteps stepsPerFrame
             --step
-            -- stepTime <- currentMilis  
+            -- stepTime <- currentMilis
             -- traceM ("step time: " ++ show stepTime)
             render
             !endTime <- currentMilis
@@ -106,9 +107,105 @@ executeInstruction (Call address) = do
     pc <- readPC
     pushStack pc
     writePC address
+
 executeInstruction ClearScreen = clearScreen
+
 executeInstruction Return = do
     pc' <- popStack
     writePC pc'
+
 executeInstruction (Jump address) = writePC address
+
+executeInstruction (SkipEq reg val) = do
+    regVal <- readRegister reg
+    when (regVal == val) $ do
+        pc <- readPC
+        writePC (pc + 2)
+
+executeInstruction (SkipNe reg val) = do
+    regVal <- readRegister reg
+    when (regVal /= val) $ do
+        pc <- readPC
+        writePC (pc + 2)
+
+executeInstruction (SkipRegEq reg1 reg2) = do
+    reg1Val <- readRegister reg1
+    reg2Val <- readRegister reg2
+    when (reg1Val == reg2Val) $ do
+        pc <- readPC
+        writePC (pc + 2)
+
+executeInstruction (SkipRegNe reg1 reg2) = do
+    reg1Val <- readRegister reg1
+    reg2Val <- readRegister reg2
+    when (reg1Val /= reg2Val) $ do
+        pc <- readPC
+        writePC (pc + 2)
+
+executeInstruction (SetRegW8 reg val) = writeRegister reg val
+
+executeInstruction (AddRegW8 reg val) = do
+    oldVal <- readRegister reg
+    writeRegister reg (oldVal + val)
+
+executeInstruction (SetRegReg target source) = do
+    sourceVal <- readRegister source
+    writeRegister target sourceVal
+
+executeInstruction(OrRegReg target source) = do
+    sourceVal <- readRegister source
+    targetVal <- readRegister target
+    writeRegister target (sourceVal .|. targetVal)
+
+executeInstruction(AndRegReg target source) = do
+    sourceVal <- readRegister source
+    targetVal <- readRegister target
+    writeRegister target (sourceVal .&. targetVal)
+
+executeInstruction(XorRegReg target source) = do
+    sourceVal <- readRegister source
+    targetVal <- readRegister target
+    writeRegister target (xor sourceVal targetVal)
+
+executeInstruction (SubReg1Reg2 target source) = do
+    sourceVal <- readRegister source
+    targetVal <- readRegister target
+    writeRegister target (targetVal - sourceVal)
+
+executeInstruction (SubReg2Reg1 target source) = do
+    sourceVal <- readRegister source
+    targetVal <- readRegister target
+    writeRegister target (sourceVal - targetVal)
+
+executeInstruction (LsbShiftR reg) = do
+    val <- readRegister reg
+    let lsb = val .&. 1
+    writeRegister reg (val `shiftR` 1)
+    writeRegister VF lsb
+
+executeInstruction (MsbShiftL reg) = do
+    val <- readRegister reg
+    let msb = val .&. 0x80
+    writeRegister reg (val `shiftL` 1)
+    writeRegister VF msb
+
+executeInstruction (SetI val) = writeIP val
+
+executeInstruction (JumpV0 val) = do
+    v0 <- readRegister V0
+    writePC (fromIntegral v0 + val)
+
+executeInstruction (SetRandAnd reg val) = do
+    randVal <- rand
+    writeRegister reg (val .&. randVal)
+
+executeInstruction (Draw regX regY rows) = do
+    x <- readRegister regX
+    y <- readRegister regY
+    ip <- readIP
+    collisions <- forM [0..(rows-1)] $ \row -> do
+        val <- load (ip + fromIntegral row)
+        draw x (y+row) val
+    when (or collisions) (writeRegister VF 1)
+
 executeInstruction x = undefined
