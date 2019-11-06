@@ -7,7 +7,7 @@ import Data.Word (Word8, Word16)
 
 class (Monad m) => MonadEmulator m where
     load :: Word16 -> m Word8
-    store :: Word8 -> Word16 -> m()
+    store :: Word16 -> Word8 -> m()
 
     readPC :: m Word16
     writePC :: Word16 -> m ()
@@ -28,6 +28,7 @@ class (Monad m) => MonadEmulator m where
     writeIP :: Word16 -> m ()
     readIP :: m Word16
 
+    testKey :: Word8 -> m Bool
 
 
 class (Monad m) => System m where

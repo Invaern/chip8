@@ -24,9 +24,12 @@ dependencies:
 - mutable-containers >= 0.3.4 && < 0.4
 - sdl2 >= 2.5 && < 3
 - linear >= 1.20.9 && < 2.0
+- random >= 1.1 && < 2.0
 
 library:
   source-dirs: src
+  ghc-options:
+  - -W
 
 executables:
   chip8-exe:

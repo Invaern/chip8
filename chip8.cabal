@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9c133344e65b9b7ca9cdb4ecaa775192c00206d306410149c2b0a38f5f151066
+-- hash: be27366ab328349d6d4c2d3dee76fc7ec55a1c0d97c63cb1238847d779249cb4
 
 name:           chip8
 version:        0.1.0.0
@@ -27,6 +27,7 @@ library
       Emulator
       Emulator.CPU
       Emulator.Instruction
+      Emulator.Keyboard
       Emulator.Memory
       Emulator.Memory2
       Emulator.Monad
@@ -40,11 +41,13 @@ library
       Paths_chip8
   hs-source-dirs:
       src
+  ghc-options: -W
   build-depends:
       base >=4.7 && <5
     , linear >=1.20.9 && <2.0
     , mtl >=2.2 && <3.0
     , mutable-containers >=0.3.4 && <0.4
+    , random >=1.1 && <2.0
     , sdl2 >=2.5 && <3
     , vector >=0.12 && <0.13
   default-language: Haskell2010
@@ -62,6 +65,7 @@ executable chip8-exe
     , linear >=1.20.9 && <2.0
     , mtl >=2.2 && <3.0
     , mutable-containers >=0.3.4 && <0.4
+    , random >=1.1 && <2.0
     , sdl2 >=2.5 && <3
     , vector >=0.12 && <0.13
   default-language: Haskell2010
@@ -70,6 +74,7 @@ test-suite chip8-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      KeyboardSpec
       VideoSpec
       Paths_chip8
   hs-source-dirs:
@@ -81,6 +86,7 @@ test-suite chip8-test
     , linear >=1.20.9 && <2.0
     , mtl >=2.2 && <3.0
     , mutable-containers >=0.3.4 && <0.4
+    , random >=1.1 && <2.0
     , sdl2 >=2.5 && <3
     , tasty >=1.2.3 && <1.3
     , tasty-hunit >=0.10.0.2 && <0.11

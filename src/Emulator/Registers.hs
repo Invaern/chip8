@@ -1,4 +1,4 @@
-module Emulator.Registers (Registers, write, read, new, Register(..)) where
+module Emulator.Registers (Registers, write, read, new, Register(..), registersUpTo) where
 import           Control.Monad.ST            (ST)
 import qualified Data.Vector.Unboxed.Mutable as V
 import           Data.Word                   (Word8)
@@ -34,6 +34,29 @@ registerIdx VC = 12
 registerIdx VD = 13
 registerIdx VE = 14
 registerIdx VF = 15
+
+registerAtIdx :: Int -> Register
+registerAtIdx 0  = V0
+registerAtIdx 1  = V1
+registerAtIdx 2  = V2
+registerAtIdx 3  = V3
+registerAtIdx 4  = V4
+registerAtIdx 5  = V5
+registerAtIdx 6  = V6
+registerAtIdx 7  = V7
+registerAtIdx 8  = V8
+registerAtIdx 9  = V9
+registerAtIdx 10 = VA
+registerAtIdx 11 = VB
+registerAtIdx 12 = VC
+registerAtIdx 13 = VD
+registerAtIdx 14 = VE
+registerAtIdx 15 = VF
+
+registersUpTo :: Register -> [Register]
+registersUpTo reg =
+    let regIdx = registerIdx reg
+    in map registerAtIdx [0..regIdx]
 
 data Register
     = V0 | V1 | V2 | V3

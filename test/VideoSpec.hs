@@ -5,7 +5,7 @@ import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 
 import qualified Emulator.Video as EV
-import           Control.Monad.ST     (stToIO, runST)
+import           Control.Monad.ST     (runST)
 import qualified Data.Vector.Unboxed as V
 import qualified Data.List as L
 import Data.Bits

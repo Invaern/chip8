@@ -6,16 +6,20 @@ module Emulator.Monad.IO
     ) where
 
 import           Control.Concurrent   (threadDelay)
-import           Control.Monad        (when)
+import           Control.Monad        (forM_, guard, when)
 import           Control.Monad.Reader (ReaderT, ask, reader, runReaderT)
 import           Control.Monad.ST     (RealWorld, stToIO)
 import           Control.Monad.Trans  (MonadIO, lift)
+import           Data.Maybe           (mapMaybe)
 import           Data.Word            (Word8)
-import           SDL                  as SDL
+import           SDL                  
 import           SDL.Time             (time)
+import           System.Random        (randomIO)
+
 
 import           Emulator.CPU         (CPU)
 import qualified Emulator.CPU         as CPU
+import qualified Emulator.Keyboard    as Keyboard
 import qualified Emulator.Memory      as Memory
 import           Emulator.Monad
 import qualified Emulator.Registers   as Registers
@@ -37,7 +41,7 @@ instance MonadEmulator IOEmulator where
 
     readPC = IOEmulator $ do
        pc <- reader (CPU.readPC . s_cpu)
-       lift $ stToIO $ pc
+       lift $ stToIO pc
 
     writePC !val = IOEmulator $ do
         cpu <- reader s_cpu
@@ -45,7 +49,7 @@ instance MonadEmulator IOEmulator where
 
     readIP = IOEmulator $ do
        ip <- reader (CPU.readIP . s_cpu)
-       lift $ stToIO $ ip
+       lift $ stToIO ip
 
     writeIP !val = IOEmulator $ do
         cpu <- reader s_cpu
@@ -75,6 +79,19 @@ instance MonadEmulator IOEmulator where
         registers <- reader (CPU.registers . s_cpu)
         lift $ stToIO $ Registers.write registers reg val
 
+    testKey key = IOEmulator $ do
+        keyboard <- reader (CPU.keyboard . s_cpu)
+        lift $ stToIO $ Keyboard.isOn keyboard key
+
+    pushStack val = IOEmulator $ do
+        cpu <- reader s_cpu
+        lift $ stToIO $ CPU.pushStack cpu val
+
+    popStack = IOEmulator $ do
+        cpu <- reader s_cpu
+        lift $ stToIO $ CPU.popStack cpu
+
+    rand = IOEmulator $ lift randomIO
 
 
 instance System IOEmulator where
@@ -97,28 +114,52 @@ instance System IOEmulator where
 
 
     handleInputs = IOEmulator $ do
-        renderer <- reader s_renderer
         events <- pollEvents
-        let eventIsQPress event =
-              case eventPayload event of
-                KeyboardEvent keyboardEvent ->
-                  keyboardEventKeyMotion keyboardEvent == Pressed &&
-                  keysymKeycode (keyboardEventKeysym keyboardEvent) == KeycodeQ
-                QuitEvent -> True
-                _ -> False
-            qPressed = any eventIsQPress events
-        return  qPressed
+        let quitEvent = any isQuitEvent events
+            pressedKeys = mapMaybe pressedKey events
 
-    currentMilis = IOEmulator $ do
-        currentSeconds <- time
-        return $ toMilis currentSeconds
+        keyboard <- reader (CPU.keyboard . s_cpu)
+        forM_ pressedKeys (lift . stToIO . Keyboard.set keyboard)
+
+        return quitEvent
+      where
+        pressedKey :: Event -> Maybe Word8
+        pressedKey event = case eventPayload event of
+            KeyboardEvent keyboardEvent -> do
+                guard $ keyboardEventKeyMotion keyboardEvent == Pressed
+                mapKeycode $ keysymKeycode (keyboardEventKeysym keyboardEvent)
+            _ ->  Nothing
+
+        isQuitEvent event = case eventPayload event of
+            QuitEvent -> True
+            _         -> False
+
+    currentMilis = IOEmulator $ toMilis <$> time
         where
             toMilis seconds =  seconds * 1000
 
-    delayMilis milis = IOEmulator $ do
-        lift $ threadDelay ( floor $ milis * 1000)
+    delayMilis milis = IOEmulator $ lift $ threadDelay (floor $ milis * 1000)
 
 runIOEmulator :: Renderer -> IOEmulator a -> IO a
 runIOEmulator renderer  (IOEmulator reader) = do
     cpu <- stToIO CPU.new
     runReaderT reader (SystemState cpu renderer)
+
+mapKeycode :: Keycode -> Maybe Word8
+mapKeycode Keycode1 = Just 0
+mapKeycode Keycode2 = Just 1
+mapKeycode Keycode3 = Just 2
+mapKeycode Keycode4 = Just 3
+mapKeycode KeycodeQ = Just 4
+mapKeycode KeycodeW = Just 5
+mapKeycode KeycodeE = Just 6
+mapKeycode KeycodeR = Just 7
+mapKeycode KeycodeA = Just 8
+mapKeycode KeycodeS = Just 9
+mapKeycode KeycodeD = Just 10
+mapKeycode KeycodeF = Just 11
+mapKeycode KeycodeZ = Just 12
+mapKeycode KeycodeX = Just 13
+mapKeycode KeycodeC = Just 14
+mapKeycode KeycodeV = Just 15
+mapKeycode _        = Nothing
