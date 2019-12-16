@@ -5,26 +5,28 @@ module Emulator.Monad.IO
     , runIOEmulator
     ) where
 
-import           Control.Concurrent   (threadDelay)
-import           Control.Monad        (forM_, guard, when)
-import           Control.Monad.Reader (ReaderT, ask, reader, runReaderT)
-import           Control.Monad.ST     (RealWorld, stToIO)
-import           Control.Monad.Trans  (MonadIO, lift)
-import           Data.Maybe           (mapMaybe)
-import           Data.Word            (Word8)
-import           SDL                  
-import           SDL.Time             (time)
-import           System.Random        (randomIO)
+import           Control.Concurrent    (threadDelay)
+import           Control.Monad         (forM_, guard, when)
+import           Control.Monad.Reader  (ReaderT, ask, reader, runReaderT)
+import           Control.Monad.ST      (RealWorld, stToIO)
+import           Control.Monad.Trans   (MonadIO, lift)
+import           Data.ByteString.Char8 (ByteString)
+import qualified Data.ByteString.Char8 as BS
+import           Data.Maybe            (mapMaybe)
+import           Data.Word             (Word8)
+import           SDL
+import           SDL.Time              (time)
+import           System.Random         (randomIO)
 
-
-import           Emulator.CPU         (CPU)
-import qualified Emulator.CPU         as CPU
-import qualified Emulator.Keyboard    as Keyboard
-import qualified Emulator.Memory      as Memory
+import           Config                (Config (..))
+import           Emulator.CPU          (CPU)
+import qualified Emulator.CPU          as CPU
+import qualified Emulator.Keyboard     as Keyboard
+import qualified Emulator.Memory       as Memory
 import           Emulator.Monad
-import qualified Emulator.Registers   as Registers
-import           Emulator.System      (SystemState (..))
-import qualified Emulator.Video       as Video
+import qualified Emulator.Registers    as Registers
+import           Emulator.System       (SystemState (..))
+import qualified Emulator.Video        as Video
 
 newtype IOEmulator a = IOEmulator (ReaderT (SystemState RealWorld) IO a)
     deriving (Functor, Applicative, Monad, MonadIO)
@@ -140,10 +142,14 @@ instance System IOEmulator where
 
     delayMilis milis = IOEmulator $ lift $ threadDelay (floor $ milis * 1000)
 
-runIOEmulator :: Renderer -> IOEmulator a -> IO a
-runIOEmulator renderer  (IOEmulator reader) = do
+runIOEmulator :: Renderer -> Config -> IOEmulator a -> IO a
+runIOEmulator renderer config (IOEmulator reader) = do
     cpu <- stToIO CPU.new
+    rom <- BS.readFile (c_romFile config)
+    let memory = CPU.memory cpu
+    stToIO $ Memory.loadRom memory rom
     runReaderT reader (SystemState cpu renderer)
+
 
 mapKeycode :: Keycode -> Maybe Word8
 mapKeycode Keycode1 = Just 0

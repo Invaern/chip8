@@ -41,7 +41,9 @@ data Instruction
     | BCD !Register
     | RegDump !Register
     | RegLoad !Register
-    | Unknown
+    | NoOp
+    | Unknown !Word8 !Word8
+    deriving (Show)
 
 decodeInstruction :: Word8 -> Word8 -> Instruction
 decodeInstruction op1 op2 = case (a, b, c, d) of
@@ -62,7 +64,7 @@ decodeInstruction op1 op2 = case (a, b, c, d) of
     (8, x, y, 5)       -> SubReg1Reg2 (reg x) (reg y)
     (8, x, _, 6)       -> LsbShiftR (reg x)
     (8, x, y, 7)       -> SubReg2Reg1 (reg x) (reg y)
-    (8, x, y, 0xE)     -> MsbShiftL (reg x)
+    (8, x, _, 0xE)     -> MsbShiftL (reg x)
     (9, x, y, 0)       -> SkipRegNe (reg x) (reg y)
     (0xA, x, y, z)     -> SetI $ word12 x y z
     (0xB, x, y, z)     -> JumpV0 $ word12 x y z
@@ -79,15 +81,16 @@ decodeInstruction op1 op2 = case (a, b, c, d) of
     (0xF, x, 0x3, 0x3) -> BCD (reg x)
     (0xF, x, 0x5, 0x5) -> RegDump (reg x)
     (0xF, x, 0x6, 0x5) -> RegLoad (reg x)
-    (0, x, y, z)       -> Call $ word12 x y z
-    _                  -> Unknown
+    (0, _, _, _)       -> NoOp
+    _                  -> Unknown op1 op2
   where
     a = shiftR op1 4
     b = op1 .&. 0x0F
-    c = shiftR op1 4
+    c = shiftR op2 4
     d = op2 .&. 0x0F
     word12 x y z = (fromIntegral x `shiftL` 8) .|. (fromIntegral y `shiftL` 4) .|. fromIntegral z
     word8 x y = (fromIntegral x `shiftL` 4) .|. fromIntegral y
+    reg 0x0 = V0
     reg 0x1 = V1
     reg 0x2 = V2
     reg 0x3 = V3
@@ -103,3 +106,4 @@ decodeInstruction op1 op2 = case (a, b, c, d) of
     reg 0xD = VD
     reg 0xE = VE
     reg 0xF = VF
+    reg x = error $ "unknown register " ++ show x

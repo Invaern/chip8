@@ -12,14 +12,18 @@ import           Emulator.Registers   (Register (..), registersUpTo)
 
 import           Debug.Trace
 
+
 step :: (MonadEmulator m) => m ()
 step = do
-    val <- load 0
-    store 0 (val + 1)
+    ins <- nextInstruction
+    -- traceM ("Instruction: " ++ show ins)
+    executeInstruction ins
+    -- val <- load 0
+    -- store 0 (val + 1)
 
 testRun :: MonadEmulator m => m Word8
 testRun = do
-    replicateM_ 100000000 (step )
+    replicateM_ 100000000 step
     load 0
 
 interpreterFrequency :: Double
@@ -84,8 +88,11 @@ throttle startTime endTime = do
 nextInstruction :: MonadEmulator m => m Instruction
 nextInstruction = do
     pc <- readPC
+    -- traceM ("Current PC " ++ show pc)
     op1 <- load pc
+    -- traceM ("Op1: " ++ show op1)
     op2 <- load (pc + 1)
+    -- traceM ("Op2: " ++ show op2)
     writePC (pc + 2)
     return $ decodeInstruction op1 op2
 
@@ -150,12 +157,12 @@ executeInstruction (SetRegReg target source) = do
     sourceVal <- readRegister source
     writeRegister target sourceVal
 
-executeInstruction(OrRegReg target source) = do
+executeInstruction (OrRegReg target source) = do
     sourceVal <- readRegister source
     targetVal <- readRegister target
     writeRegister target (sourceVal .|. targetVal)
 
-executeInstruction(AndRegReg target source) = do
+executeInstruction (AndRegReg target source) = do
     sourceVal <- readRegister source
     targetVal <- readRegister target
     writeRegister target (sourceVal .&. targetVal)
@@ -169,7 +176,7 @@ executeInstruction (SubReg1Reg2 target source) = do
     sourceVal <- readRegister source
     targetVal <- readRegister target
     writeRegister target (targetVal - sourceVal)
-    if (sourceVal > targetVal)
+    if sourceVal > targetVal
         then writeRegister VF 0
         else writeRegister VF 1
 
@@ -177,7 +184,7 @@ executeInstruction (SubReg2Reg1 target source) = do
     sourceVal <- readRegister source
     targetVal <- readRegister target
     writeRegister target (sourceVal - targetVal)
-    if (targetVal > sourceVal)
+    if targetVal > sourceVal
         then writeRegister VF 0
         else writeRegister VF 1
 
@@ -240,7 +247,7 @@ executeInstruction (StoreKey reg) = do --TODO: implement some blocking
     rollback = do
         pc <- readPC
         writePC (pc-2)
-    setKey key = writeRegister reg key
+    setKey = writeRegister reg
 
 executeInstruction (SetDelay reg) = do
     val <- readRegister reg
@@ -298,7 +305,16 @@ executeInstruction (RegLoad reg) = do
         writeRegister r val
         loadRegs (address + 1) regs
 
-executeInstruction Unknown = fail "Unknown instruction"
+executeInstruction (AddRegReg target source) = do
+    tVal <- readRegister target
+    sVal <- readRegister source
+    let result = tVal + sVal
+    writeRegister target result
+    when (result < tVal || result < sVal) (writeRegister VF 1)
+
+executeInstruction NoOp = pure ()
+
+executeInstruction ins = fail ("Unknown instruction " ++ show ins) 
 
 anyKeyPressed :: (MonadEmulator m) => m (Maybe Word8)
 anyKeyPressed = key 0

@@ -18,18 +18,16 @@ keyboardTests = testGroup "Keyboard"
     ]
 
 initiallyAllOff :: TestTree
-initiallyAllOff = testCase "Initially all off" $ do
-    assertBool "All off" $ (not . or) keys
+initiallyAllOff = testCase "Initially all off" $ assertBool "All off" $ (not . or) keys
   where
     keys = runST $ do
         keyboard <- EK.new
-        forM [0..0xFF] $ \key -> do
-            EK.isOn keyboard key
+        forM [0..0xFF] $ \key -> EK.isOn keyboard key
 
 only16KeysCanBeSet :: TestTree
 only16KeysCanBeSet = testCase "Only 0x00-0x0F range can be set" $ do
-    let expectedOn = take 16 (repeat True)
-        expectedOff = take (0xFF - 0x0F) (repeat False)
+    let expectedOn = replicate 16 True
+        expectedOff = replicate (0xFF - 0x0F) False
     assertEqual "All on" expectedOn (take 16 keys)
     assertEqual "All off" expectedOff (drop 16 keys)
   where

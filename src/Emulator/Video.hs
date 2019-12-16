@@ -7,8 +7,8 @@ import qualified Data.Vector.Unboxed         as V
 import qualified Data.Vector.Unboxed.Mutable as VM
 import           Data.Word                   (Word16, Word8)
 
-data Video s = Video (V.MVector s Word8)
-data VideoSnapshot = VideoSnapshot (V.Vector Word8)
+newtype Video s = Video (V.MVector s Word8)
+newtype VideoSnapshot = VideoSnapshot (V.Vector Word8)
 
 draw :: Video s -> Word8 -> Word8 -> Word8 -> ST s Bool
 draw (Video mem) x y val = do
@@ -16,7 +16,7 @@ draw (Video mem) x y val = do
       (x', x_shift) = x `quotRem` 8 -- for given row gets (which_byte, offset_into_byte)
       wrapped_x = x' `rem` 8
       idx = fromIntegral $ wrapped_y*8 + wrapped_x
-  if (x_shift == 0)
+  if x_shift == 0
     then drawAligned mem idx
     else drawNotAligned mem idx (wrapped_x, wrapped_y) x_shift
 
@@ -38,7 +38,7 @@ draw (Video mem) x y val = do
           lsbValMasked = xor lsb (val .&. lsb_mask)
       VM.write mem idx msbValMasked
       VM.write mem lsb_idx lsbValMasked
-      return $ (collision msb msbValMasked) || (collision lsb lsbValMasked)
+      return $ collision msb msbValMasked || collision lsb lsbValMasked
 
 
     collision :: Word8 -> Word8 -> Bool
@@ -63,7 +63,7 @@ new' = do
     VM.write vec 255 0x81
     return $ Video vec
 
-activePoints :: Video s -> ST s ([(Int, Int)])
+activePoints :: Video s -> ST s [(Int, Int)]
 activePoints (Video vbuffer) = do
   !points <- forM [0..255] $ \idx -> do
     val <- VM.read vbuffer idx
@@ -74,7 +74,7 @@ activePoints' :: Int -> Word8 -> [(Int, Int)]
 activePoints' idx val =
   let (y, xBase) = idx `quotRem` 8
       x = xBase * 8
-      !onBits = [ offset  | offset <- [0..7], (shiftR 0x80 offset) .&. val /= 0 ]
+      !onBits = [ offset  | offset <- [0..7], shiftR 128 offset .&. val /= 0 ]
 
   in map (\bit -> (x + bit, y)) onBits
 

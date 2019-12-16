@@ -2,15 +2,16 @@
 module Main where
 
 import SDL
-import Lib
-import Emulator
-import Emulator.Monad.ST
-import Emulator.Monad.IO
+import Emulator (mainLoop)
+import Emulator.Monad.IO (runIOEmulator)
+import Config (opts)
+import Options.Applicative (execParser)
 
 main :: IO ()
 main = do
+    config <- execParser opts
     renderer <- getRenderer
-    runIOEmulator renderer mainLoop
+    runIOEmulator renderer config mainLoop
     return ()
 
 

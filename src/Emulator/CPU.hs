@@ -37,12 +37,12 @@ data Timer = DelayTimer | SoundTimer
 new :: ST s (CPU s)
 new = do
     mem <- Memory.new
-    pc <- newRef 0
+    pc <- newRef (fromIntegral Memory.addressableStart)
     ip <- newRef 0
     delay_t <- newRef 0
     sound_t <- newRef 0
     stack <- newSTRef []
-    vbuffer <- Video.new'
+    vbuffer <- Video.new
     regs <- Registers.new
     keyboard <- Keyboard.new
     return $ CPU
@@ -58,16 +58,16 @@ new = do
         }
 
 memory :: CPU s -> Memory s
-memory cpu = c_memory cpu
+memory = c_memory
 
 video :: CPU s -> Video s
-video cpu = c_vbuffer cpu
+video = c_vbuffer
 
 registers :: CPU s -> Registers s
-registers cpu = c_registers cpu
+registers = c_registers
 
 keyboard :: CPU s -> Keyboard s
-keyboard cpu = c_keyboard cpu
+keyboard = c_keyboard
 
 readIP :: CPU s -> ST s Word16
 readIP cpu = readRef $ c_ip cpu
@@ -76,10 +76,10 @@ readPC :: CPU s -> ST s Word16
 readPC cpu = readRef $ c_pc cpu
 
 writePC :: CPU s -> Word16 -> ST s ()
-writePC cpu val = writeRef (c_pc cpu) val
+writePC cpu = writeRef (c_pc cpu)
 
 writeIP :: CPU s -> Word16 -> ST s ()
-writeIP cpu val = writeRef (c_ip cpu) val
+writeIP cpu = writeRef (c_ip cpu)
 
 readTimer :: CPU s -> Timer -> ST s Word8
 readTimer CPU {c_delay_t} DelayTimer = readRef c_delay_t

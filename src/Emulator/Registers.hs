@@ -4,10 +4,10 @@ import qualified Data.Vector.Unboxed.Mutable as V
 import           Data.Word                   (Word8)
 import           Prelude                     hiding (read)
 
-data Registers s = Registers (V.MVector s Word8)
+newtype Registers s = Registers (V.MVector s Word8)
 
 write :: Registers s -> Register -> Word8 -> ST s ()
-write (Registers regs) reg val = V.write regs (registerIdx reg) val
+write (Registers regs) reg = V.write regs (registerIdx reg)
 
 read :: Registers s -> Register -> ST s Word8
 read (Registers regs) reg = V.read regs (registerIdx reg)
@@ -63,3 +63,4 @@ data Register
     | V4 | V5 | V6 | V7
     | V8 | V9 | VA | VB
     | VC | VD | VE | VF
+    deriving (Show)
