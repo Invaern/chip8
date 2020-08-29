@@ -6,11 +6,10 @@ module Emulator.Monad.IO
     ) where
 
 import           Control.Concurrent    (threadDelay)
-import           Control.Monad         (forM_, guard, when)
-import           Control.Monad.Reader  (ReaderT, ask, reader, runReaderT)
+import           Control.Monad         (forM_, guard)
+import           Control.Monad.Reader  (ReaderT, reader, runReaderT)
 import           Control.Monad.ST      (RealWorld, stToIO)
 import           Control.Monad.Trans   (MonadIO, lift)
-import           Data.ByteString.Char8 (ByteString)
 import qualified Data.ByteString.Char8 as BS
 import           Data.Maybe            (mapMaybe)
 import           Data.Word             (Word8)
@@ -19,7 +18,6 @@ import           SDL.Time              (time)
 import           System.Random         (randomIO)
 
 import           Config                (Config (..))
-import           Emulator.CPU          (CPU)
 import qualified Emulator.CPU          as CPU
 import qualified Emulator.Keyboard     as Keyboard
 import qualified Emulator.Memory       as Memory
@@ -95,6 +93,15 @@ instance MonadEmulator IOEmulator where
 
     rand = IOEmulator $ lift randomIO
 
+    setState state = IOEmulator $ do
+        cpu <- reader s_cpu
+        lift $ stToIO $ CPU.setState cpu state
+
+    getState = IOEmulator $ do
+        cpu <- reader s_cpu
+        lift $ stToIO $ CPU.getState cpu
+
+
 
 instance System IOEmulator where
     render = IOEmulator $ do
@@ -121,6 +128,7 @@ instance System IOEmulator where
             pressedKeys = mapMaybe pressedKey events
 
         keyboard <- reader (CPU.keyboard . s_cpu)
+        lift $ stToIO $ Keyboard.clear keyboard
         forM_ pressedKeys (lift . stToIO . Keyboard.set keyboard)
 
         return quitEvent
@@ -152,20 +160,20 @@ runIOEmulator renderer config (IOEmulator reader) = do
 
 
 mapKeycode :: Keycode -> Maybe Word8
-mapKeycode Keycode1 = Just 0
-mapKeycode Keycode2 = Just 1
-mapKeycode Keycode3 = Just 2
-mapKeycode Keycode4 = Just 3
+mapKeycode Keycode1 = Just 1
+mapKeycode Keycode2 = Just 2
+mapKeycode Keycode3 = Just 3
+mapKeycode Keycode4 = Just 0xC 
 mapKeycode KeycodeQ = Just 4
 mapKeycode KeycodeW = Just 5
 mapKeycode KeycodeE = Just 6
-mapKeycode KeycodeR = Just 7
-mapKeycode KeycodeA = Just 8
-mapKeycode KeycodeS = Just 9
-mapKeycode KeycodeD = Just 10
-mapKeycode KeycodeF = Just 11
-mapKeycode KeycodeZ = Just 12
-mapKeycode KeycodeX = Just 13
-mapKeycode KeycodeC = Just 14
-mapKeycode KeycodeV = Just 15
+mapKeycode KeycodeR = Just 0xD 
+mapKeycode KeycodeA = Just 7
+mapKeycode KeycodeS = Just 8
+mapKeycode KeycodeD = Just 9
+mapKeycode KeycodeF = Just 0xE
+mapKeycode KeycodeZ = Just 0xA
+mapKeycode KeycodeX = Just 0
+mapKeycode KeycodeC = Just 0xB
+mapKeycode KeycodeV = Just 0xF
 mapKeycode _        = Nothing

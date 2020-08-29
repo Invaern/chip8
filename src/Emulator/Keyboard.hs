@@ -1,8 +1,8 @@
-module Emulator.Keyboard (Keyboard, new, isOn, set) where
+module Emulator.Keyboard (Keyboard, new, isOn, set, clear) where
 
 -- import           Data.STRef (modifySTRef', newSTRef, readSTRef)
 import           Control.Monad.ST (ST)
-import           Data.Mutable     (URef, newRef, readRef, modifyRef')
+import           Data.Mutable     (URef, newRef, readRef, modifyRef', writeRef)
 import           Data.Word        (Word16, Word8)
 import           Data.Bits
 
@@ -17,6 +17,9 @@ isOn :: Keyboard s -> Word8 -> ST s Bool
 isOn (Keyboard mem) key = do
     val <- readRef mem
     return $ testBit val (fromIntegral key)
+
+clear :: Keyboard s -> ST s ()
+clear (Keyboard mem) = writeRef mem 0
 
 set :: Keyboard s -> Word8 -> ST s ()
 set (Keyboard mem) key = modifyRef' mem $ \val -> setBit val (fromIntegral key)

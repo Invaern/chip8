@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.1.
+-- This file has been generated from package.yaml by hpack version 0.31.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 02355a96298e7b788897027a86a19054e7112b08f57562143772c24f36b48d11
+-- hash: 07419b09d9e32da494935a34f380a8a21af993861d362442a8d472cf9b832acd
 
 name:           chip8
 version:        0.1.0.0
@@ -30,7 +30,6 @@ library
       Emulator.Instruction
       Emulator.Keyboard
       Emulator.Memory
-      Emulator.Memory2
       Emulator.Monad
       Emulator.Monad.IO
       Emulator.Monad.ST

@@ -21,3 +21,5 @@ cabal.project.local~
 .HTF/
 .ghc.environment.*
 roms/
+.stack-work-profiling/
+.DS_Store

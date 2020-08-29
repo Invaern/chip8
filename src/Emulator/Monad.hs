@@ -1,6 +1,6 @@
 module Emulator.Monad where
 
-import Emulator.CPU (Timer)
+import Emulator.CPU (Timer, State)
 import Emulator.Registers (Register)
 
 import Data.Word (Word8, Word16)
@@ -29,6 +29,9 @@ class (Monad m) => MonadEmulator m where
     readIP :: m Word16
 
     testKey :: Word8 -> m Bool
+
+    setState :: State -> m ()
+    getState :: m State
 
 
 class (Monad m) => System m where

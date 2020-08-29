@@ -5,7 +5,7 @@ module Emulator where
 import           Control.Monad        (forM, replicateM_, unless, when)
 import           Data.Bits
 import           Data.Word            (Word8)
-import           Emulator.CPU         (Timer (..))
+import           Emulator.CPU         (Timer (..), State(..))
 import           Emulator.Instruction (Instruction (..), decodeInstruction)
 import           Emulator.Monad       (MonadEmulator (..), System (..))
 import           Emulator.Registers   (Register (..), registersUpTo)
@@ -17,6 +17,11 @@ step :: (MonadEmulator m) => m ()
 step = do
     ins <- nextInstruction
     -- traceM ("Instruction: " ++ show ins)
+    case ins of
+        Unknown _ _ -> pure ()
+        NoOp -> pure ()
+        _ -> traceM (show ins)
+    
     executeInstruction ins
     -- val <- load 0
     -- store 0 (val + 1)
@@ -38,8 +43,8 @@ mainLoop = loop
         unless quit $ do
             !startTime <- currentMilis
             -- traceM ("start time: " ++ show startTime)
-            frameSteps stepsPerFrame
-            updateTimers 
+            state <- (frameSteps stepsPerFrame >>= checkKeyPress)
+            updateTimers state
             --step
             -- stepTime <- currentMilis
             -- traceM ("step time: " ++ show stepTime)
@@ -48,13 +53,29 @@ mainLoop = loop
             -- traceM ("end time: " ++ show endTime)
             throttle startTime endTime
             loop
-    frameSteps :: (MonadEmulator m) => Int -> m ()
-    frameSteps 0 = pure ()
-    frameSteps n = do
-        step
-        frameSteps (n-1)
 
-    stepsPerFrame = floor $ interpreterFrequency / fps
+    checkKeyPress :: (MonadEmulator m) => State -> m State
+    checkKeyPress (WaitingForKey reg) = do
+        key <- anyKeyPressed
+        case key of
+            Just k -> do
+                writeRegister reg k
+                setState Running
+                pure Running
+            Nothing -> pure (WaitingForKey reg)
+
+    checkKeyPress Running = pure Running
+
+    frameSteps :: (MonadEmulator m) => Int -> m State
+    frameSteps 0 = getState
+    frameSteps n = do
+        state <- getState
+        case state of
+            Running -> step >> frameSteps (n-1)
+            WaitingForKey _ -> pure state
+
+stepsPerFrame :: Int
+stepsPerFrame = floor $ interpreterFrequency / fps
 
 fps :: Double
 fps = 60
@@ -93,16 +114,18 @@ nextInstruction = do
     -- traceM ("Op1: " ++ show op1)
     op2 <- load (pc + 1)
     -- traceM ("Op2: " ++ show op2)
-    writePC (pc + 2)
+    unless (pc == 4094) $ writePC (pc + 2)
+
     return $ decodeInstruction op1 op2
 
 
-updateTimers :: MonadEmulator m => m ()
-updateTimers = do
+updateTimers :: MonadEmulator m => State -> m ()
+updateTimers Running = do
     delayT <- readTimer DelayTimer
     soundT <- readTimer SoundTimer
     when (delayT > 0) $ writeTimer DelayTimer (delayT - 1)
     when (soundT > 0) $ writeTimer SoundTimer (soundT - 1)
+updateTimers _ = pure ()
 
 
 executeInstruction :: MonadEmulator m => Instruction -> m ()
@@ -196,7 +219,7 @@ executeInstruction (LsbShiftR reg) = do
 
 executeInstruction (MsbShiftL reg) = do
     val <- readRegister reg
-    let msb = val .&. 0x80
+    let msb = (val `shiftR` 7) .&. 1
     writeRegister reg (val `shiftL` 1)
     writeRegister VF msb
 
@@ -214,6 +237,7 @@ executeInstruction (Draw regX regY rows) = do
     x <- readRegister regX
     y <- readRegister regY
     ip <- readIP
+    -- traceM ("Drawing ip: " ++ show ip ++ " at (" ++ show x ++ "," ++ show y ++ ")")
     collisions <- forM [0..(rows-1)] $ \row -> do
         val <- load (ip + fromIntegral row)
         draw x (y+row) val
@@ -241,13 +265,10 @@ executeInstruction (GetDelay reg) = do
 executeInstruction (StoreKey reg) = do --TODO: implement some blocking
     pressedKey <- anyKeyPressed
     case pressedKey of
-        Nothing  -> rollback
+        Nothing  -> setState (WaitingForKey reg)
         Just key -> setKey key
   where
-    rollback = do
-        pc <- readPC
-        writePC (pc-2)
-    setKey = writeRegister reg
+    setKey key = writeRegister reg key
 
 executeInstruction (SetDelay reg) = do
     val <- readRegister reg
@@ -255,6 +276,7 @@ executeInstruction (SetDelay reg) = do
 
 executeInstruction (SetSound reg) = do
     val <- readRegister reg
+    traceM "setting delay"
     writeTimer SoundTimer val
 
 executeInstruction (AddI reg) = do
@@ -266,7 +288,7 @@ executeInstruction (AddI reg) = do
 
 executeInstruction (SetChar reg) = do
     val <- readRegister reg
-    let newIP = 4 * (val .&. 0xF)
+    let newIP = 5 * (val .&. 0xF)
     writeIP (fromIntegral newIP)
 
 executeInstruction (BCD reg) = do
