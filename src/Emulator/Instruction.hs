@@ -89,7 +89,6 @@ decodeInstruction op1 op2 = case (a, b, c, d) of
     c = shiftR op2 4
     d = op2 .&. 0x0F
     word12 x y z = (fromIntegral x `shiftL` 8) .|. (fromIntegral y `shiftL` 4) .|. fromIntegral z
-    word8 x y = (fromIntegral x `shiftL` 4) .|. fromIntegral y
     reg 0x0 = V0
     reg 0x1 = V1
     reg 0x2 = V2

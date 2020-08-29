@@ -1,15 +1,18 @@
 {-# LANGUAGE BangPatterns #-}
-module Emulator.Video where
-import           Control.Monad               (forM, when)
+module Emulator.Video (Video, draw, activePoints, new, clear) where
+import           Control.Monad               (forM)
 import           Control.Monad.ST
 import           Data.Bits
 import qualified Data.Vector.Unboxed         as V
 import qualified Data.Vector.Unboxed.Mutable as VM
-import           Data.Word                   (Word16, Word8)
-import           Debug.Trace
+import           Data.Word                   (Word8)
 
 newtype Video s = Video (V.MVector s Word8)
-newtype VideoSnapshot = VideoSnapshot (V.Vector Word8)
+
+new :: ST s (Video s)
+new = do
+    vec <- VM.new 256
+    return $ Video vec
 
 draw :: Video s -> Word8 -> Word8 -> Word8 -> ST s Bool
 draw (Video mem) x y val = do
@@ -31,14 +34,10 @@ draw (Video mem) x y val = do
     drawNotAligned mem idx (wrapped_x, wrapped_y) offset = do
       let lsb_x = (wrapped_x + 1) `rem` 8
           lsb_idx = fromIntegral $ wrapped_y*8 + lsb_x
-      -- traceM $ "msb_idx: " ++ show idx ++ " lsb_idx: " ++ show lsb_idx ++ " x: " ++ show wrapped_x ++ " y: " ++ show wrapped_y ++ " offset: " ++ show offset
       msb <- VM.read mem idx
       lsb <- VM.read mem lsb_idx
-      -- let _ = 0xFF `shiftR` fromIntegral offset
       let msbValMasked = xor msb (val `shiftR` fromIntegral offset)
-          -- lsb_mask = 0xFF `shiftL` fromIntegral (8 - offset)
           lsbValMasked = xor lsb (val `shiftL` fromIntegral (8 - offset))
-      -- traceM $ "msbMasked: " ++ show msbValMasked ++ " lsbMasked: " ++ show lsbValMasked
       VM.write mem idx msbValMasked
       VM.write mem lsb_idx lsbValMasked
       return $ collision msb msbValMasked || collision lsb lsbValMasked
@@ -47,24 +46,6 @@ draw (Video mem) x y val = do
     collision :: Word8 -> Word8 -> Bool
     collision oldVal newVal = oldVal > (newVal .&. oldVal)
 
-freeze :: Video s -> ST s VideoSnapshot
-freeze (Video mem) = do
-    snapshot <- V.freeze mem
-    return $ VideoSnapshot snapshot
-
-new :: ST s (Video s)
-new = do
-    vec <- VM.new 256
-    return $ Video vec
-
-new' :: ST s (Video s)
-new' = do
-    vec <- VM.new 256
-    VM.write vec 0 0xC1
-    VM.write vec 7 0x81
-    VM.write vec 248 0x81
-    VM.write vec 255 0x81
-    return $ Video vec
 
 activePoints :: Video s -> ST s [(Int, Int)]
 activePoints (Video vbuffer) = do

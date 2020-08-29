@@ -52,6 +52,7 @@ registerAtIdx 12 = VC
 registerAtIdx 13 = VD
 registerAtIdx 14 = VE
 registerAtIdx 15 = VF
+registerAtIdx x = error $ "Unknown register: " ++ show x
 
 registersUpTo :: Register -> [Register]
 registersUpTo reg =

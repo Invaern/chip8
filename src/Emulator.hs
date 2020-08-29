@@ -10,21 +10,11 @@ import           Emulator.Instruction (Instruction (..), decodeInstruction)
 import           Emulator.Monad       (MonadEmulator (..), System (..))
 import           Emulator.Registers   (Register (..), registersUpTo)
 
-import           Debug.Trace
-
 
 step :: (MonadEmulator m) => m ()
 step = do
     ins <- nextInstruction
-    -- traceM ("Instruction: " ++ show ins)
-    -- case ins of
-    --     Unknown _ _ -> pure ()
-    --     NoOp -> pure ()
-    --     _ -> traceM (show ins)
-    
     executeInstruction ins
-    -- val <- load 0
-    -- store 0 (val + 1)
 
 testRun :: MonadEmulator m => m Word8
 testRun = do
@@ -42,15 +32,10 @@ mainLoop = loop
         quit <- handleInputs
         unless quit $ do
             !startTime <- currentMilis
-            -- traceM ("start time: " ++ show startTime)
             state <- (frameSteps stepsPerFrame >>= checkKeyPress)
             updateTimers state
-            --step
-            -- stepTime <- currentMilis
-            -- traceM ("step time: " ++ show stepTime)
             render
             !endTime <- currentMilis
-            -- traceM ("end time: " ++ show endTime)
             throttle startTime endTime
             loop
 
@@ -83,22 +68,11 @@ fps = 60
 timeToDraw :: Double
 timeToDraw = (1/fps) * 1000
 
--- updateTimers :: (MonadEmulator m) => Double -> Double -> m ()
--- updateTimers startTime endTime = do
---     updateTimers' $ elapsedW8 (endTime - startTime)
---   where
---     elapsedW8 :: Double -> Word8
---     elapsedW8 elapsed | elapsed > 255 = 255
---                       | otherwise = floor elapsed
-
 
 throttle :: (System m ) => Double -> Double ->  m ()
 throttle startTime endTime = do
     let elapsed = endTime - startTime
         sleepTime = delayInMs elapsed
-    -- traceM ("elapsed: " ++ show elapsed)
-    -- traceM("time to draw: " ++ show timeToDraw)
-    -- traceM ("sleeping for " ++ show sleepTime)
     delayMilis sleepTime
     return ()
   where
@@ -109,11 +83,8 @@ throttle startTime endTime = do
 nextInstruction :: MonadEmulator m => m Instruction
 nextInstruction = do
     pc <- readPC
-    -- traceM ("Current PC " ++ show pc)
     op1 <- load pc
-    -- traceM ("Op1: " ++ show op1)
     op2 <- load (pc + 1)
-    -- traceM ("Op2: " ++ show op2)
     unless (pc == 4094) $ writePC (pc + 2)
 
     return $ decodeInstruction op1 op2
@@ -174,7 +145,6 @@ executeInstruction (AddRegW8 reg val) = do
     oldVal <- readRegister reg
     let newVal = oldVal + val
     writeRegister reg newVal
-    -- when (newVal < oldVal && newVal < val) (writeRegister VF 1)
 
 executeInstruction (SetRegReg target source) = do
     sourceVal <- readRegister source
@@ -237,7 +207,6 @@ executeInstruction (Draw regX regY rows) = do
     x <- readRegister regX
     y <- readRegister regY
     ip <- readIP
-    -- traceM ("Drawing ip: " ++ show ip ++ " at (" ++ show x ++ "," ++ show y ++ ")")
     writeRegister VF 0
     collisions <- forM [0..(rows-1)] $ \row -> do
         val <- load (ip + fromIntegral row)
@@ -263,7 +232,7 @@ executeInstruction (GetDelay reg) = do
     delay <- readTimer DelayTimer
     writeRegister reg delay
 
-executeInstruction (StoreKey reg) = do --TODO: implement some blocking
+executeInstruction (StoreKey reg) = do
     pressedKey <- anyKeyPressed
     case pressedKey of
         Nothing  -> setState (WaitingForKey reg)
@@ -277,14 +246,12 @@ executeInstruction (SetDelay reg) = do
 
 executeInstruction (SetSound reg) = do
     val <- readRegister reg
-    traceM "setting delay"
     writeTimer SoundTimer val
 
 executeInstruction (AddI reg) = do
     ip <- readIP
     val <- readRegister reg
     let newIP = ip + fromIntegral val
-    -- when (newIP > 0xFFF ) (writeRegister VF 1)
     writeIP (newIP .&. 0xFFF)
 
 executeInstruction (SetChar reg) = do

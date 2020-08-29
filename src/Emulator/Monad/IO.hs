@@ -6,7 +6,7 @@ module Emulator.Monad.IO
     ) where
 
 import           Control.Concurrent    (threadDelay)
-import           Control.Monad         (forM_, guard)
+import           Control.Monad         (forM_)
 import           Control.Monad.Reader  (ReaderT, reader, runReaderT)
 import           Control.Monad.ST      (RealWorld, stToIO)
 import           Control.Monad.Trans   (MonadIO, lift)

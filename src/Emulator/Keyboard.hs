@@ -1,8 +1,7 @@
 module Emulator.Keyboard (Keyboard, KeyPress(..), new, isOn, set) where
 
--- import           Data.STRef (modifySTRef', newSTRef, readSTRef)
 import           Control.Monad.ST (ST)
-import           Data.Mutable     (URef, newRef, readRef, modifyRef', writeRef)
+import           Data.Mutable     (URef, newRef, readRef, modifyRef')
 import           Data.Word        (Word16, Word8)
 import           Data.Bits
 

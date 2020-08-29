@@ -1,7 +1,6 @@
 module Emulator.Memory  (Memory, new, store, load, loadRom, addressableStart) where
 import           Control.Monad               (forM_)
 import           Control.Monad.ST
-import           Data.Bits
 import           Data.ByteString             (ByteString)
 import qualified Data.ByteString             as BS
 import qualified Data.Vector.Unboxed.Mutable as V
@@ -56,7 +55,6 @@ initFonts (Memory mem) = do
     writeChar 0xF (0xF0, 0x80, 0xF0, 0x80, 0x80)
 
   where
-    -- writeChar :: Int -> (Word8, Word8, Word8, Word8, Word8) -> ST s ()
     writeChar idx (a, b, c, d, e) = do
         let idx' = idx * 5
         V.write mem idx' a
