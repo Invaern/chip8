@@ -17,10 +17,10 @@ step :: (MonadEmulator m) => m ()
 step = do
     ins <- nextInstruction
     -- traceM ("Instruction: " ++ show ins)
-    case ins of
-        Unknown _ _ -> pure ()
-        NoOp -> pure ()
-        _ -> traceM (show ins)
+    -- case ins of
+    --     Unknown _ _ -> pure ()
+    --     NoOp -> pure ()
+    --     _ -> traceM (show ins)
     
     executeInstruction ins
     -- val <- load 0
@@ -174,7 +174,7 @@ executeInstruction (AddRegW8 reg val) = do
     oldVal <- readRegister reg
     let newVal = oldVal + val
     writeRegister reg newVal
-    when (newVal < oldVal && newVal < val) (writeRegister VF 1)
+    -- when (newVal < oldVal && newVal < val) (writeRegister VF 1)
 
 executeInstruction (SetRegReg target source) = do
     sourceVal <- readRegister source
@@ -238,6 +238,7 @@ executeInstruction (Draw regX regY rows) = do
     y <- readRegister regY
     ip <- readIP
     -- traceM ("Drawing ip: " ++ show ip ++ " at (" ++ show x ++ "," ++ show y ++ ")")
+    writeRegister VF 0
     collisions <- forM [0..(rows-1)] $ \row -> do
         val <- load (ip + fromIntegral row)
         draw x (y+row) val
@@ -283,8 +284,8 @@ executeInstruction (AddI reg) = do
     ip <- readIP
     val <- readRegister reg
     let newIP = ip + fromIntegral val
-    when (newIP > 0xFFF ) (writeRegister VF 1)
-    writeIP (newIP `rem` 0xFFF)
+    -- when (newIP > 0xFFF ) (writeRegister VF 1)
+    writeIP (newIP .&. 0xFFF)
 
 executeInstruction (SetChar reg) = do
     val <- readRegister reg
@@ -310,7 +311,7 @@ executeInstruction (RegDump reg) = do
     ip <- readIP
     dumpRegs ip registers
   where
-    dumpRegs address [] = pure ()
+    dumpRegs _ [] = pure ()
     dumpRegs address (r:regs) = do
         val <- readRegister r
         store address val
@@ -321,7 +322,7 @@ executeInstruction (RegLoad reg) = do
     ip <- readIP
     loadRegs ip registers
   where
-    loadRegs address [] = pure ()
+    loadRegs _ [] = pure ()
     loadRegs address (r:regs) = do
         val <- load address
         writeRegister r val
@@ -332,7 +333,10 @@ executeInstruction (AddRegReg target source) = do
     sVal <- readRegister source
     let result = tVal + sVal
     writeRegister target result
-    when (result < tVal || result < sVal) (writeRegister VF 1)
+    let carry = (result < tVal || result < sVal)
+    if carry
+    then writeRegister VF 1
+    else writeRegister VF 0
 
 executeInstruction NoOp = pure ()
 

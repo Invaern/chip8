@@ -20,6 +20,7 @@ import           System.Random         (randomIO)
 import           Config                (Config (..))
 import qualified Emulator.CPU          as CPU
 import qualified Emulator.Keyboard     as Keyboard
+import           Emulator.Keyboard     (KeyPress(..))
 import qualified Emulator.Memory       as Memory
 import           Emulator.Monad
 import qualified Emulator.Registers    as Registers
@@ -128,18 +129,19 @@ instance System IOEmulator where
             pressedKeys = mapMaybe pressedKey events
 
         keyboard <- reader (CPU.keyboard . s_cpu)
-        lift $ stToIO $ Keyboard.clear keyboard
         forM_ pressedKeys (lift . stToIO . Keyboard.set keyboard)
 
         return quitEvent
       where
-        pressedKey :: Event -> Maybe Word8
+        pressedKey :: Event -> Maybe KeyPress
         pressedKey event = case eventPayload event of
             KeyboardEvent keyboardEvent -> do
-                guard $ keyboardEventKeyMotion keyboardEvent == Pressed
-                mapKeycode $ keysymKeycode (keyboardEventKeysym keyboardEvent)
+                let kPress = motionEventToKeyPress $ keyboardEventKeyMotion keyboardEvent
+                kPress <$> (mapKeycode $ keysymKeycode (keyboardEventKeysym keyboardEvent))
             _ ->  Nothing
 
+        motionEventToKeyPress Pressed = On
+        motionEventToKeyPress Released = Off
         isQuitEvent event = case eventPayload event of
             QuitEvent -> True
             _         -> False

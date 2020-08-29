@@ -16,6 +16,7 @@ videoTests = testGroup "Video sub system"
     [ 
       drawAlignedPoint
     , singlePointCollision
+    , singlePointCollisionMidScreen
     , drawAlignedPointWithCollision
     , drawAlignedHorizontalWrapping
     , drawAlignedVerticalWrapping
@@ -58,6 +59,19 @@ singlePointCollision = testCase "Single point collision" $ do
         video <- EV.new
         EV.draw video 0 0 0x1
         collision <- EV.draw video 0 0 0x1
+        points <- EV.activePoints video
+        return (points, collision)
+
+singlePointCollisionMidScreen :: TestTree
+singlePointCollisionMidScreen = testCase "Single point collision mid screen" $ do
+    let expected = []
+    eqAnyOrder "Expected different active points" expected activePoints 
+    assertEqual "Collision expected" True collision 
+  where
+    (activePoints, collision) = runST $ do
+        video <- EV.new
+        EV.draw video 32 16 0x1
+        collision <- EV.draw video 32 16 0x1
         points <- EV.activePoints video
         return (points, collision)
 

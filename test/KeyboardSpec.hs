@@ -34,7 +34,7 @@ only16KeysCanBeSet = testCase "Only 0x00-0x0F range can be set" $ do
     keys = runST $ do
         keyboard <- EK.new
         forM [0..0xFF] $ \key -> do
-            EK.set keyboard key
+            EK.set keyboard (EK.On key)
             EK.isOn keyboard key
 
 setOnlyOneKey :: TestTree
@@ -47,5 +47,5 @@ setOnlyOneKey = testCase "Only one key should be set" $ do
   where
     withKey key = runST $ do
       keyboard <- EK.new
-      EK.set keyboard key
+      EK.set keyboard (EK.On key)
       mapM (EK.isOn keyboard) [0..0x0F]
