@@ -15,10 +15,12 @@ videoTests :: TestTree
 videoTests = testGroup "Video sub system"
     [ 
       drawAlignedPoint
+    , singlePointCollision
     , drawAlignedPointWithCollision
     , drawAlignedHorizontalWrapping
     , drawAlignedVerticalWrapping
     , drawNotAlignedPoint
+    , drawNotAlignedPointWithCollision
     , prop_activePointsAfterDraw
     , initiallyClear
     ]
@@ -46,28 +48,54 @@ drawAlignedPoint = testCase "Draw aligned point" $ do
         points <- EV.activePoints video
         return (points, collision)
 
+singlePointCollision :: TestTree
+singlePointCollision = testCase "Single point collision" $ do
+    let expected = []
+    eqAnyOrder "Expected different active points" expected activePoints 
+    assertEqual "Collision expected" True collision 
+  where
+    (activePoints, collision) = runST $ do
+        video <- EV.new
+        EV.draw video 0 0 0x1
+        collision <- EV.draw video 0 0 0x1
+        points <- EV.activePoints video
+        return (points, collision)
+
 drawAlignedPointWithCollision :: TestTree
 drawAlignedPointWithCollision = testCase "Draw aligned point with collision" $ do
-    let expected = [(x,0) | x <- [4..7]]
+    let expected = [(0,0), (1,0), (6,0), (7,0)]
     eqAnyOrder "Expected different active points" expected activePoints 
     assertEqual "Collision expected" True collision 
   where
     (activePoints, collision) = runST $ do
         video <- EV.new
         EV.draw video 0 0 0xFF
-        collision <- EV.draw video 0 0 0xF0
+        collision <- EV.draw video 0 0 0x3C -- 0011 1100
         points <- EV.activePoints video
         return (points, collision)
 
 drawNotAlignedPoint :: TestTree
 drawNotAlignedPoint = testCase "Draw not aligned point" $ do
-    let expected = [(x, 0) | x <- [4..11]]
+    let expected = [(6,0), (7,0), (9, 0)]
     eqAnyOrder "Expected different active points" expected activePoints 
     assertEqual "No collision expected" False collision 
   where
     (activePoints, collision) = runST $ do
         video <- EV.new
-        collision <- EV.draw video 4 0 0xFF
+        collision <- EV.draw video 4 0 0x34 -- 0011 0100
+        points <- EV.activePoints video
+        return (points, collision)
+
+drawNotAlignedPointWithCollision :: TestTree
+drawNotAlignedPointWithCollision = testCase "Draw not aligned point with collision" $ do
+    let expected = [(4,0), (9,0)]
+    eqAnyOrder "Expected different active points" expected activePoints 
+    assertEqual "Collision expected" True collision 
+  where
+    (activePoints, collision) = runST $ do
+        video <- EV.new
+        EV.draw video 4 0 0xFF
+        collision <- EV.draw video 4 0 0x7B
         points <- EV.activePoints video
         return (points, collision)
 
