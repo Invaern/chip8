@@ -18,7 +18,7 @@ main = do
 getRenderer :: IO Renderer
 getRenderer = do
     initializeAll
-    window <- createWindow "My SDL Application" window
+    window <- createWindow "Chip-8" window
     createRenderer window (-1) defaultRenderer
   where
     window = defaultWindow 
