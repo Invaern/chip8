@@ -34,7 +34,6 @@ instance MonadEmulator IOEmulator where
     load !address = IOEmulator $ do
         mem <- reader (CPU.memory . s_cpu)
         !loaded <- lift $ stToIO $ Memory.load mem address
-        -- lift $ print loaded
         return loaded
     store !address word = IOEmulator $ do
         mem <- reader (CPU.memory . s_cpu)
@@ -142,6 +141,7 @@ instance System IOEmulator where
 
         motionEventToKeyPress Pressed = On
         motionEventToKeyPress Released = Off
+
         isQuitEvent event = case eventPayload event of
             QuitEvent -> True
             _         -> False
@@ -152,13 +152,17 @@ instance System IOEmulator where
 
     delayMilis milis = IOEmulator $ lift $ threadDelay (floor $ milis * 1000)
 
+    getStepsPerFrame = IOEmulator $ reader s_stepsPerFrame
+
 runIOEmulator :: Renderer -> Config -> IOEmulator a -> IO a
 runIOEmulator renderer config (IOEmulator reader) = do
     cpu <- stToIO CPU.new
     rom <- BS.readFile (c_romFile config)
     let memory = CPU.memory cpu
     stToIO $ Memory.loadRom memory rom
-    runReaderT reader (SystemState cpu renderer)
+    let clock = c_clock config
+        stepsPerFrame = clock `quot` 60
+    runReaderT reader (SystemState cpu renderer stepsPerFrame)
 
 
 mapKeycode :: Keycode -> Maybe Word8

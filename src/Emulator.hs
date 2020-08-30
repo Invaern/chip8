@@ -2,7 +2,7 @@
 module Emulator where
 
 
-import           Control.Monad        (forM, replicateM_, unless, when)
+import           Control.Monad        (forM, unless, when)
 import           Data.Bits
 import           Data.Word            (Word8)
 import           Emulator.CPU         (Timer (..), State(..))
@@ -16,29 +16,19 @@ step = do
     ins <- nextInstruction
     executeInstruction ins
 
-testRun :: MonadEmulator m => m Word8
-testRun = do
-    replicateM_ 100000000 step
-    load 0
-
-interpreterFrequency :: Double
-interpreterFrequency = 500
-
 mainLoop :: (MonadEmulator m, System m) => m ()
-mainLoop = loop
+mainLoop = do
+    stepsPerFrame <- getStepsPerFrame
+    quit <- handleInputs
+    unless quit $ do
+        !startTime <- currentMilis
+        state <- (frameSteps stepsPerFrame >>= checkKeyPress)
+        updateTimers state
+        render
+        !endTime <- currentMilis
+        throttle startTime endTime
+        mainLoop
   where
-    loop :: (MonadEmulator m, System m) => m ()
-    loop = do
-        quit <- handleInputs
-        unless quit $ do
-            !startTime <- currentMilis
-            state <- (frameSteps stepsPerFrame >>= checkKeyPress)
-            updateTimers state
-            render
-            !endTime <- currentMilis
-            throttle startTime endTime
-            loop
-
     checkKeyPress :: (MonadEmulator m) => State -> m State
     checkKeyPress (WaitingForKey reg) = do
         key <- anyKeyPressed
@@ -59,8 +49,6 @@ mainLoop = loop
             Running -> step >> frameSteps (n-1)
             WaitingForKey _ -> pure state
 
-stepsPerFrame :: Int
-stepsPerFrame = floor $ interpreterFrequency / fps
 
 fps :: Double
 fps = 60

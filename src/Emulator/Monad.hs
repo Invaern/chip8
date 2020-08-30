@@ -39,4 +39,5 @@ class (Monad m) => System m where
     handleInputs :: m Bool
     currentMilis :: m Double
     delayMilis :: Double -> m ()
+    getStepsPerFrame :: m Int
 
